@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "principalType": {
+      "value": "ServicePrincipal"
+    },
+    "chatModelName": {
+      "value": "gpt-5.4-mini"
+    },
+    "chatModelVersion": {
+      "value": "2026-03-17"
+    },
+    "chatDeploymentName": {
+      "value": "gpt-5.4-mini"
+    },
+    "appServiceSku": {
+      "value": "B1"
+    },
+    "useApplicationInsights": {
+      "value": true
+    },
+    "useSearchService": {
+      "value": false
+    },
+    "enableAzureMonitorTracing": {
+      "value": false
+    },
+    "azureTracingGenAIContentRecordingEnabled": {
+      "value": false
+    },
+    "chatDeploymentCapacity": {
+      "value": 80
+    },
+    "embedDeploymentCapacity": {
+      "value": 50
+    },
+    "aiSearchIndexName": {
+      "value": "index_sample"
+    }
+  }
+}

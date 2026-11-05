@@ -1,0 +1,98 @@
+name: App Service CI/CD (without azd)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  CI:
+    name: Validate and package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build React and validate Python, Bicep and pipeline contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r requirements-dev.txt
+          python scripts/package_app.py
+          az bicep build --file infra/main.bicep --outfile infra/main.json
+          python -m compileall -q src/api src/gunicorn.conf.py
+          python -m ruff check scripts/package_app.py tests/test_app_service*.py
+          bash -n scripts/deploy_infra.sh
+          python -m unittest discover -s tests -p 'test_app_service*.py' -v
+
+      - name: Create verified deployment artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/scripts
+          (cd src/.appservice && zip -q -r "$GITHUB_WORKSPACE/artifacts/app.zip" .)
+          cp -R infra artifacts/infra
+          cp scripts/deploy_infra.sh artifacts/scripts/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-service
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 7
+
+  CD:
+    name: Deploy infrastructure and application
+    needs: CI
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    environment: foundry-demo
+    concurrency:
+      group: foundry-app-service-deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-service
+          path: artifacts
+
+      - name: Sign in to Azure using workload identity federation
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy subscription-scoped Bicep with Azure CLI
+        id: infrastructure
+        shell: bash
+        env:
+          DEPLOYMENT_ENVIRONMENT: ${{ vars.DEPLOYMENT_ENVIRONMENT }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          AZURE_DEPLOYMENT_PRINCIPAL_ID: ${{ vars.AZURE_DEPLOYMENT_PRINCIPAL_ID }}
+        run: |
+          set -euo pipefail
+          bash artifacts/scripts/deploy_infra.sh artifacts
+          appName=$(jq -er '.SERVICE_API_NAME.value' artifacts/deployment-outputs.json)
+          echo "app_name=$appName" >> "$GITHUB_OUTPUT"
+
+      - name: ZIP-deploy the CI artifact to App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ steps.infrastructure.outputs.app_name }}
+          package: artifacts/app.zip

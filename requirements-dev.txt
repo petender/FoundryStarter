@@ -1,0 +1,5 @@
+-r src/requirements.txt
+ruff
+pre-commit
+httpx
+PyYAML

@@ -1,0 +1,116 @@
+trigger:
+  branches:
+    include:
+      - main
+      - master
+
+pr:
+  branches:
+    include:
+      - main
+      - master
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  azureServiceConnection: foundry-app-service
+  deploymentEnvironment: foundry-demo
+  azureLocation: eastus
+  # Enterprise application object ID, not its application/client ID.
+  azureDeploymentPrincipalId: ''
+
+stages:
+  - stage: CI
+    displayName: Validate and package
+    jobs:
+      - job: Validate
+        steps:
+          - checkout: self
+
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.13'
+
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '22.x'
+
+          - bash: |
+              set -euo pipefail
+              python -m pip install -r requirements-dev.txt
+              python scripts/package_app.py
+              az bicep build --file infra/main.bicep --outfile infra/main.json
+              python -m compileall -q src/api src/gunicorn.conf.py
+              python -m ruff check scripts/package_app.py tests/test_app_service*.py
+              bash -n scripts/deploy_infra.sh
+              python -m unittest discover -s tests -p 'test_app_service*.py' -v
+            displayName: Build React and validate Python, Bicep and pipeline contracts
+
+          - task: ArchiveFiles@2
+            inputs:
+              rootFolderOrFile: '$(Build.SourcesDirectory)/src/.appservice'
+              includeRootFolder: false
+              archiveType: zip
+              archiveFile: '$(Build.ArtifactStagingDirectory)/app-service/app.zip'
+              replaceExistingArchive: true
+            displayName: Create App Service ZIP
+
+          - bash: |
+              set -euo pipefail
+              cp -R infra "$(Build.ArtifactStagingDirectory)/app-service/infra"
+              mkdir -p "$(Build.ArtifactStagingDirectory)/app-service/scripts"
+              cp scripts/deploy_infra.sh "$(Build.ArtifactStagingDirectory)/app-service/scripts/"
+            displayName: Stage verified infrastructure and deployment script
+
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: '$(Build.ArtifactStagingDirectory)/app-service'
+              artifact: app-service
+            displayName: Publish verified deployment artifact
+
+  - stage: CD
+    displayName: Deploy infrastructure and application
+    dependsOn: CI
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/master'))
+    jobs:
+      - deployment: Deploy
+        environment: '$(deploymentEnvironment)'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: none
+                - download: none
+
+                - task: DownloadPipelineArtifact@2
+                  inputs:
+                    buildType: current
+                    artifactName: app-service
+                    targetPath: '$(Pipeline.Workspace)/app-service'
+
+                - task: AzureCLI@2
+                  inputs:
+                    azureSubscription: '$(azureServiceConnection)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+                      bundle="$(Pipeline.Workspace)/app-service"
+                      bash "$bundle/scripts/deploy_infra.sh" "$bundle"
+                      appName=$(jq -er '.SERVICE_API_NAME.value' "$bundle/deployment-outputs.json")
+                      echo "##vso[task.setvariable variable=deployedAppName]$appName"
+                  env:
+                    DEPLOYMENT_ENVIRONMENT: $(deploymentEnvironment)
+                    AZURE_LOCATION: $(azureLocation)
+                    AZURE_DEPLOYMENT_PRINCIPAL_ID: $(azureDeploymentPrincipalId)
+                  displayName: Deploy subscription-scoped Bicep with Azure CLI
+
+                - task: AzureWebApp@1
+                  inputs:
+                    azureSubscription: '$(azureServiceConnection)'
+                    appType: webAppLinux
+                    appName: '$(deployedAppName)'
+                    package: '$(Pipeline.Workspace)/app-service/app.zip'
+                    deploymentMethod: zipDeploy
+                  displayName: ZIP-deploy the CI artifact to App Service
