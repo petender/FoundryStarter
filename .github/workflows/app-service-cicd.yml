@@ -24,6 +24,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
+          package-manager-cache: false
 
       - name: Build React and validate Python, Bicep and pipeline contracts
         shell: bash
@@ -50,6 +51,7 @@ jobs:
         with:
           name: app-service
           path: artifacts/
+          archive: true
           if-no-files-found: error
           retention-days: 7
 
