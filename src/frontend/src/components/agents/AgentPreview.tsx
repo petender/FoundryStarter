@@ -1,13 +1,10 @@
 import { ReactNode, useState, useMemo } from "react";
 import {
-  Body1,
   Button,
-  Caption1,
-  Title2,
 } from "@fluentui/react-components";
-import { ChatRegular, MoreHorizontalRegular } from "@fluentui/react-icons";
+import { ArrowRightRegular, ChatRegular, MoreHorizontalRegular, SparkleRegular } from "@fluentui/react-icons";
+import clsx from "clsx";
 
-import { AgentIcon } from "./AgentIcon";
 import { SettingsPanel } from "../core/SettingsPanel";
 import { AgentPreviewChatBot } from "./AgentPreviewChatBot";
 import { MenuButton } from "../core/MenuButton/MenuButton";
@@ -347,18 +344,11 @@ export function AgentPreview({ agentDetails }: IAgentPreviewProps): ReactNode {
 
   return (
     <div className={styles.container}>
-      <div className={styles.topBar}>
+      <header className={styles.topBar}>
         <div className={styles.leftSection}>
-          {messageList.length > 0 && (
-            <>
-              <AgentIcon
-                alt=""
-                iconClassName={styles.agentIcon}
-                iconName={agentDetails.metadata?.logo}
-              />
-              <Body1 className={styles.agentName}>{agentDetails.name}</Body1>
-            </>
-          )}
+          <span className={styles.brandMark} aria-hidden="true">FS</span>
+          <h1 className={styles.agentName}>{agentDetails.name}</h1>
+          <span className={styles.sampleBadge}>Sample app</span>
         </div>
         <div className={styles.rightSection}>
           {" "}
@@ -379,26 +369,101 @@ export function AgentPreview({ agentDetails }: IAgentPreviewProps): ReactNode {
             }}
           />
         </div>
-      </div>
-      <div className={styles.content}>          <>
+      </header>
+      <aside className={styles.technologyStrip} aria-label="Sample architecture and pipeline labs">
+        <div className={styles.technologyGroup}>
+          <span className={styles.poweredBy}>Powered by</span>
+        <div className={styles.architecture}>
+          <a
+            className={styles.technologyCard}
+            href="https://learn.microsoft.com/azure/app-service/overview"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img src="/static/assets/technology-icons/azure-app-service.svg" alt="" width="36" height="36" />
+            <span>
+              <strong>Azure App Service</strong>
+              <span className={styles.technologyRole}>Web hosting</span>
+            </span>
+          </a>
+          <ArrowRightRegular className={styles.architectureArrow} aria-hidden="true" />
+          <a
+            className={styles.technologyCard}
+            href="https://learn.microsoft.com/azure/ai-foundry/what-is-azure-ai-foundry"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img src="/static/assets/technology-icons/microsoft-foundry.svg" alt="" width="36" height="36" />
+            <span>
+              <strong>Microsoft Foundry</strong>
+              <span className={styles.technologyRole}>AI conversations</span>
+            </span>
+          </a>
+        </div>
+        </div>
+        <div className={styles.technologyGroup}>
+          <span className={styles.poweredBy}>
+            Deployed by
+            <span className={styles.labNote}>Choose your pipeline lab</span>
+          </span>
+          <div className={styles.architecture}>
+            <a
+              className={styles.technologyCard}
+              href="https://github.com/petender/FoundryStarter/blob/main/docs/cicd.md#configure-github-actions"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img
+                className={styles.githubIcon}
+                src="/static/assets/technology-icons/github.svg"
+                alt=""
+                width="36"
+                height="36"
+              />
+              <span>
+                <strong>GitHub</strong>
+                <span className={styles.technologyRole}>Actions lab</span>
+              </span>
+            </a>
+            <span className={styles.pipelineChoice}>or</span>
+            <a
+              className={styles.technologyCard}
+              href="https://github.com/petender/FoundryStarter/blob/main/docs/cicd.md#configure-azure-devops"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img src="/static/assets/technology-icons/azure-devops.svg" alt="" width="36" height="36" />
+              <span>
+                <strong>Azure DevOps</strong>
+                <span className={styles.technologyRole}>Pipelines lab</span>
+              </span>
+            </a>
+          </div>
+        </div>
+      </aside>
+      <main className={clsx(styles.content, messageList.length === 0 && styles.emptyContent)}>
             {messageList.length === 0 && (
               <div className={styles.emptyChatContainer}>
-                <AgentIcon
-                  alt=""
-                  iconClassName={styles.emptyStateAgentIcon}
-                  iconName={agentDetails.metadata?.logo}
-                />
-                <Caption1 className={styles.agentName}>
-                  {agentDetails.name}
-                </Caption1>
-                <Title2>How can I help you today?</Title2>
+                <div className={styles.heroIcon} aria-hidden="true"><SparkleRegular /></div>
+                <span className={styles.heroEyebrow}>Sample-sized app. Real Foundry conversations.</span>
+                <h2 className={styles.heroTitle}>
+                  Small app.<br /><span>Big AI energy.</span>
+                </h2>
+                <p className={styles.heroDescription}>
+                  Your ideas bring the spark. Azure brings the horsepower.
+                  Deploy with either pipeline, then bring your own questions.
+                </p>
+                <p className={styles.heroQuip}>Warning: may cause sudden urges to build something.</p>
               </div>
             )}
             <AgentPreviewChatBot
               agentName={agentDetails.name}
               agentLogo={agentDetails.metadata?.logo}
-              chatContext={chatContext}            />          </>
-      </div>
+              chatContext={chatContext} />
+      </main>
+      <footer className={styles.sampleDisclaimer}>
+        Built for demos, not production. AI can make mistakes.
+      </footer>
 
       {/* Settings Panel */}
       <SettingsPanel

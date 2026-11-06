@@ -164,11 +164,21 @@ class TestChatBehavior(unittest.TestCase):
                 patch.object(main, "ChatCompletionsClient", return_value=chat), \
                 patch.object(main, "EmbeddingsClient", return_value=AsyncMock()):
             with TestClient(main.create_app()) as client:
-                self.assertEqual(client.get("/").status_code, 200)
+                home = client.get("/")
+                self.assertEqual(home.status_code, 200)
+                self.assertIn("<title>FoundryStarter | Sample AI Chat</title>", home.text)
                 for name in ("main-react-app.js", "main-react-app.css"):
                     response = client.get(f"/static/react/assets/{name}")
                     self.assertEqual(response.status_code, 200)
                     self.assertGreater(len(response.content), 0)
+                for name in ("azure-app-service.svg", "microsoft-foundry.svg", "github.svg", "azure-devops.svg"):
+                    response = client.get(f"/static/assets/technology-icons/{name}")
+                    self.assertEqual(response.status_code, 200)
+                    self.assertIn("image/svg+xml", response.headers["content-type"])
+                    self.assertIn("<svg", response.text)
+                    if name in ("azure-app-service.svg", "microsoft-foundry.svg"):
+                        self.assertIn('viewBox="0 0 18 18"', response.text)
+                        self.assertIn("<linearGradient", response.text)
                 response = client.post("/chat", json={"messages": [{"role": "user", "content": "Hi"}]})
                 self.assertEqual(response.status_code, 200)
                 self.assertIn("text/event-stream", response.headers["content-type"])
