@@ -50,28 +50,50 @@ class TestPipelineContracts(unittest.TestCase):
         self.assertIn("github.ref == 'refs/heads/master'", jobs["CD"]["if"])
         self.assertFalse(jobs["CD"]["concurrency"]["cancel-in-progress"])
         steps = jobs["CD"]["steps"]
-        login = next(step for step in steps if step.get("uses") == "azure/login@v2")
+        login = next(step for step in steps if step.get("uses", "").partition("@")[0] == "azure/login")
         self.assertNotIn("creds", login["with"])
-        download = next(step for step in steps if step.get("uses") == "actions/download-artifact@v4")
+        for key, variable in (("client-id", "AZURE_CLIENT_ID"), ("tenant-id", "AZURE_TENANT_ID"),
+                              ("subscription-id", "AZURE_SUBSCRIPTION_ID")):
+            self.assertEqual(login["with"][key], "${{ vars." + variable + " }}")
+        download = next(step for step in steps
+                        if step.get("uses", "").partition("@")[0] == "actions/download-artifact")
         self.assertEqual(download["with"]["name"], "app-service")
-        deploy = next(step for step in steps if step.get("uses") == "azure/webapps-deploy@v3")
+        self.assertEqual(download["with"]["path"], "artifacts")
+        self.assertFalse(download["with"].get("skip-decompress", False))
+        deploy = next(step for step in steps if step.get("uses", "").partition("@")[0] == "azure/webapps-deploy")
         self.assertEqual(deploy["with"]["package"], "artifacts/app.zip")
         self.assertFalse(any(step.get("uses", "").startswith("actions/checkout@") for step in steps))
+
+    def test_github_contracts_accept_action_version_and_sha_updates(self):
+        for reference in ("v999", "0123456789abcdef0123456789abcdef01234567"):
+            with self.subTest(reference=reference):
+                for job in self.github["jobs"].values():
+                    for step in job["steps"]:
+                        if "uses" in step:
+                            step["uses"] = step["uses"].partition("@")[0] + "@" + reference
+                self.test_github_has_gated_ci_and_cd_with_oidc()
+                self.test_ci_validates_before_artifact_publication_and_cd_never_rebuilds()
 
     def test_ci_validates_before_artifact_publication_and_cd_never_rebuilds(self):
         azure_steps = self.azure["stages"][0]["jobs"][0]["steps"]
         github_steps = self.github["jobs"]["CI"]["steps"]
         for steps, script_key, publish_action in (
             (azure_steps, "bash", "PublishPipelineArtifact@1"),
-            (github_steps, "run", "actions/upload-artifact@v4"),
+            (github_steps, "run", "actions/upload-artifact"),
         ):
             validation = next(i for i, step in enumerate(steps) if "unittest" in step.get(script_key, ""))
             publish = next(i for i, step in enumerate(steps)
-                           if step.get("task", step.get("uses")) == publish_action)
+                           if step.get("task", step.get("uses", "").partition("@")[0]) == publish_action)
             self.assertLess(validation, publish)
             script = steps[validation][script_key]
             for check in ("package_app.py", "az bicep build", "ruff check", "compileall", "test_app_service*.py"):
                 self.assertIn(check, script)
+        upload = next(step for step in github_steps
+                      if step.get("uses", "").partition("@")[0] == "actions/upload-artifact")
+        self.assertEqual(upload["with"]["name"], "app-service")
+        self.assertEqual(upload["with"]["path"], "artifacts/")
+        self.assertTrue(upload["with"]["archive"])
+        self.assertEqual(upload["with"]["if-no-files-found"], "error")
         for document in (self.azure, self.github):
             self.assertNotRegex(json.dumps(document), r"(?:^|\\n)\s*azd\s")
         for steps in (self.azure["stages"][1]["jobs"][0]["strategy"]["runOnce"]["deploy"]["steps"],

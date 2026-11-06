@@ -130,6 +130,27 @@ The CD concurrency group serializes GitHub deployments and does not cancel an
 active deployment. If you rename the GitHub environment, update both the workflow's
 `environment` and the federated credential subject.
 
+## Maintaining GitHub Actions
+
+Dependabot proposes grouped action updates weekly. Review major-version release
+notes and require the PR's CI checks to pass before merging. Pipeline contract
+tests identify actions by repository name, so version bumps and commit-SHA pins
+do not require changing the tests; artifact, deployment and OIDC checks remain
+enforced.
+
+The newer `actions/*` releases use the Node.js 24 action runtime, independently of the app's
+Node.js 22 and Python 3.13 versions. GitHub-hosted Ubuntu runners support it;
+self-hosted runners must be at least version 2.327.1. Automatic npm caching is
+explicitly disabled. Upload keeps `archive: true` so the `app-service` artifact
+contains both the unchanged `app.zip` and infrastructure files, and CD extracts
+that bundle without rebuilding it.
+
+Action updates do not configure workload identity federation or deployment
+variables. PR CI needs neither; validating Azure login and deployment requires
+the CD configuration above. The separate, manually dispatched Template
+Validation workflow still uses its existing development tooling, not the native
+App Service pipeline.
+
 ## Native deployment settings
 
 Edit [infra/cicd.parameters.json](../infra/cicd.parameters.json) before committing.
