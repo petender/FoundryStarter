@@ -1,0 +1,33 @@
+Microsoft Azure product icons
+
+Source: Azure Architecture Center, Azure Public Service Icons V25
+https://learn.microsoft.com/azure/architecture/icons/
+https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V25.zip
+
+Original files:
+- Icons/app services/10035-icon-service-App-Services.svg
+- Icons/ai + machine learning/035746832-icon-service-AI-Foundry.svg
+- Icons/devops/10261-icon-service-Azure-DevOps.svg
+
+These icons illustrate the sample's architecture and pipeline labs as
+DevOps course material. They do not represent FoundryStarter's own brand.
+Their original colors and shapes are retained.
+
+Microsoft permits the use of these icons in architectural diagrams, training
+materials, or documentation. You can copy, distribute, and display the icons
+only for the permitted use unless granted explicit permission by Microsoft.
+Microsoft reserves all other rights.
+
+The icons are subject to Microsoft's terms, not this repository's MIT license.
+
+GitHub Invertocat
+
+Source: GitHub Brand, GitHub_Logos.zip
+https://brand.github.com/foundations/logo
+https://brand.github.com/GitHub_Logos.zip
+Original file: GitHub Logos/SVG/GitHub_Invertocat_Black_Clearspace.svg
+
+The unmodified logo identifies this sample's GitHub Actions integration and
+links to its GitHub-hosted lab instructions. It does not imply endorsement.
+GitHub's permitted-use and trademark guidelines apply; the logo is not covered
+by this repository's MIT license. All rights reserved by GitHub, Inc.

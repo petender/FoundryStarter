@@ -7,6 +7,15 @@ App Service, with optional RAG, tracing, and two-stage CI/CD.
 
 This is an App Service adaptation of [Azure-Samples/get-started-with-ai-chat](https://github.com/Azure-Samples/get-started-with-ai-chat).
 The original React UI, FastAPI streaming chat, Foundry models, managed identity, optional RAG, and tracing are retained.
+The chat interface adds a visible sample-app badge, playful welcome copy, and a
+"Powered by" App Service-to-Foundry architecture strip. A "Deployed by" section
+links to the alternative GitHub Actions and Azure DevOps pipeline labs for
+DevOps course learners. Both options are shown; the UI does not detect which
+pipeline deployed the app. Learners enter their own questions without preset prompts.
+The official product icons are used as educational architecture/integration
+illustrations under [Microsoft's icon terms](https://learn.microsoft.com/azure/architecture/icons/)
+and [GitHub's logo guidelines](https://brand.github.com/foundations/logo);
+see the [icon notice](src/api/static/assets/technology-icons/NOTICE.txt).
 Application hosting uses the built-in Linux Python 3.13 runtime and ZIP deployment: no Docker build,
 custom container image, Azure Container Apps environment, or Azure Container Registry is required.
 App Service manages its runtime internally; this is not a Windows/IIS deployment.
@@ -55,9 +64,10 @@ App Service's Oryx build installs Python dependencies from `requirements.txt`.
 
 • **[Flexible Deployment Options](./docs/deployment.md)**: The solution supports deployment through GitHub Codespaces, VS Code Dev Containers, or local environments, providing flexibility for different development workflows.
 
-Here is a screenshot showing the chatting web application with requests and responses between the system and the user:
+The sample chat welcome screen highlights its hosting, AI integration, and the
+two alternative deployment labs:
 
-![Screenshot of chatting web application showing requests and responses between assistants and the user.](docs/images/webapp_screenshot.png)
+![FoundryStarter sample chat with Powered by App Service and Foundry icons and Deployed by GitHub or Azure DevOps lab badges.](docs/images/webapp_screenshot.png)
 
 **WARNING**: This template, the application code and configuration it contains, has been built to showcase Microsoft Azure specific services and tools. We strongly advise our customers not to make this code part of their production environments without implementing or enabling additional security features.  
 

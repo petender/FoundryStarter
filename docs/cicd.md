@@ -12,6 +12,11 @@ Both use Ubuntu agents, Python 3.13, Node.js 22, Azure CLI, and native web-app
 deployment tasks. CI needs no Azure login. CD authenticates with a deployment
 service principal; the app itself still uses its separate managed identity.
 
+For DevOps course labs, the chat UI's "Deployed by" badges link to the GitHub
+Actions and Azure DevOps setup sections below. These are alternative learner
+paths, not a claim that both pipelines deployed the running app. Choose one
+pipeline for your workload; learners can enter their own chat questions.
+
 ## Stage 1: CI
 
 For pull requests and pushes to `main`/`master`:
